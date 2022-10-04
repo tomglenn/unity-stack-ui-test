@@ -26,11 +26,12 @@ public class UIManager : MonoBehaviour
         instance = this;
         DontDestroyOnLoad(gameObject);
     }
-    
+
     /// <summary>
     /// Push a new screen to the stack
     /// </summary>
     /// <param name="key">The key for the screen to push</param>
+    /// <param name="data">Arbitrary data to pass to the screen </param>
     public async Task PushScreen(string key, IDictionary<string, object> data = null)
     {
         var screenGameObject = GetScreen(key);
@@ -41,8 +42,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        GameObject currentScreen;
-        if (screenStack.TryPeek(out currentScreen))
+        if (screenStack.TryPeek(out var currentScreen))
         {
             try
             {
@@ -126,34 +126,9 @@ public class UIManager : MonoBehaviour
                     break;
                 }
 
-                var poppedScreen = screenStack.Pop();
+                await PopScreen();
 
-                try
-                {
-                    await poppedScreen.GetComponent<IScreen>().Exit();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogErrorFormat("Exception occurred when exiting {0}; it will now be forcibly deactivated.\n{1}", poppedScreen.name, ex.Message);
-                }
-                
-                poppedScreen.SetActive(false);
-
-                if (screenStack.TryPeek(out var previousScreen))
-                {
-                    try
-                    {
-                        previousScreen.SetActive(true);
-                        await previousScreen.GetComponent<IScreen>().Resume();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogErrorFormat("Exception occurred when resuming {0}; it will now be popped from the stack.\n{1}", previousScreen.name, ex.Message);
-                        await PopScreen();
-                    }
-                }
-                
-                if (poppedScreen == screen)
+                if (screenStack.TryPeek(out var nextPeekedScreen) && nextPeekedScreen == screen)
                 {
                     break;
                 }
